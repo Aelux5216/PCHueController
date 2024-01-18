@@ -11,6 +11,7 @@ using Q42.HueApi;
 using Q42.HueApi.Interfaces;
 using Q42.HueApi.Models.Bridge;
 using Q42.HueApi.Models;
+using Q42.HueApi.Models.Groups;
 using Q42.HueApi.ColorConverters;
 using Q42.HueApi.ColorConverters.OriginalWithModel;
 using System.Threading;
@@ -125,7 +126,28 @@ namespace PCHueController
                 }
             }
 
-            await client.RecallSceneAsync(id,"0"); //Send command to change the scene.
+            string selectedGroup = "";
+
+            List <Group> g = new List<Group>();
+
+            foreach (Group f in client.GetGroupsAsync().Result)
+            {
+                g.Add(f);
+            }
+
+            Light l = client.GetLightAsync(selectedLights[0]).Result;
+
+            foreach (Group t in g)
+            {
+                List<string> s = t.Lights;
+
+                if (s.Contains(selectedLights[0]))
+                {
+                    selectedGroup = t.Id;
+                }
+            }
+
+            await client.RecallSceneAsync(id,selectedGroup); //Send command to change the scene.
         }
 
         public async Task RegisterTask()
@@ -260,7 +282,6 @@ namespace PCHueController
                         lstScenes.Items.Clear(); //Clear scenes listbox.
 
                         lstScenes.Items.Add("Color loop"); //Add additional scenes.
-                        lstScenes.Items.Add("Disco");
 
                         scenes = client.GetScenesAsync().Result.Where(s => !s.Name.Contains("Scene")); //Only show custom scenes. 
 
@@ -357,7 +378,6 @@ namespace PCHueController
                 lstScenes.Items.Clear();
 
                 lstScenes.Items.Add("Color loop");
-                lstScenes.Items.Add("Disco");
 
                 scenes = client.GetScenesAsync().Result.Where(s => !s.Name.Contains("Scene"));
 
@@ -394,15 +414,6 @@ namespace PCHueController
                     commandSender(command);
 
                     btnOnOff.BackgroundImage = Properties.Resources.On; 
-                }
-
-                else if (sceneIndex == "Disco")
-                {
-                    discoToggle = true;
-
-                    discoThread(); //Begin disco threads.
-
-                    btnOnOff.BackgroundImage = Properties.Resources.On;
                 }
 
                 else //If not colour loop or disco then it is a normal theme so disable disco and send the scene to the method.
@@ -570,6 +581,23 @@ namespace PCHueController
                 txtResults.Show();
                 txtResults.Text = "Connection failed, please make sure you are connected to the internet and have pressed connect.";
             }
+        }
+
+        private void btnDisco_Click(object sender, EventArgs e)
+        {
+            if (discoToggle == false) //If disco hasn't started yet then turn it on
+            {
+                discoToggle = true;
+                discoThread(); //Begin disco threads.
+
+                btnOnOff.BackgroundImage = Properties.Resources.On;
+            }
+            else //If disco is on then turn it off
+            { 
+                discoToggle = false;
+
+                btnOnOff.BackgroundImage = Properties.Resources.Off;
+            } 
         }
     }
 }
